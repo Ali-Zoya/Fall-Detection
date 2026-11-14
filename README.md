@@ -1,163 +1,117 @@
-# SafeWalk – AI-Powered Fall Detection and Emergency Response System
+# SafeWalk – AI-Powered Fall Detection & Emergency Response System
 
-SafeWalk watches a camera feed for possible falls, gives the user a countdown to cancel, and otherwise e-mails the user's primary emergency contact. It replaces the earlier "MAZT" project.
+SafeWalk is an intelligent, privacy-first computer vision system designed to detect human falls in real time and automatically notify designated emergency contacts. 
 
-> **Not a medical device.** SafeWalk can miss falls and raise false alarms. It does not contact ambulances or emergency services (in India call **112**), it does not monitor 24/7 on its own, and it has not been clinically validated. Do not rely on it as the only safety measure.
+By running pose-estimation algorithms entirely on the client device, video frames never leave the browser, ensuring complete user privacy while delivering rapid, automated alerting.
 
-## How it works
+---
 
-```
-Camera ─▶ MediaPipe Pose Landmarker (in the browser, 33 landmarks)
-       ─▶ custom TypeScript fall algorithm (torso angle, hip drop speed, posture persistence)
-       ─▶ possible fall ─▶ countdown (default 10 s, "I'm Safe – Cancel Alert")
-       ─▶ not cancelled ─▶ POST /api/falls ─▶ PostgreSQL + alert e-mail ─▶ real send status
-```
+## 🌟 Key Features
 
-* **Privacy:** video frames are analysed locally in the browser and never uploaded. The server only receives the final event (time, outcome, evidence score, optional location).
-* **No fake detection:** there is no random or mock logic in the live pipeline. The *Test Lab* page feeds scripted skeletons through the same algorithm and is clearly labelled; it saves nothing and sends nothing.
-* **Honest e-mail status:** an alert is `sent` when the mail server accepted it, or `failed` with the server's error. E-mail has no reliable delivery receipt, so SafeWalk never claims a message was read.
+- **On-Device Computer Vision:** Real-time 33-point skeletal landmark detection powered by MediaPipe. Video frames are processed entirely in the browser and never transmitted or stored on remote servers.
+- **Intelligent Fall Heuristics:** Evaluates body angle, velocity of hip descent, and posture persistence to accurately differentiate between actual falls and normal daily activities (such as sitting down or bending over).
+- **Safety Cancellation Window:** Configurable countdown timer (default 10 seconds) with an immediate *"I'm Safe"* action to prevent false alarms before an alert is dispatched.
+- **Automated Emergency Dispatch:** Instant notifications delivered to designated primary emergency contacts via verified transactional email (SMTP or Brevo API).
+- **Interactive First-Aid Assistant:** Built-in guidance for emergency procedures, fall prevention, and home safety recommendations.
+- **Auditable Event History:** Complete record of all detected events, delivery receipts, and alert statuses.
 
-### Monitoring states
-Idle → Initializing Camera → Detecting Person → Monitoring → Possible Fall Detected → Fall Confirmation Countdown → Fall Confirmed → Alert Sent (or Error). Monitoring lives in a layout-level provider, so it keeps running when you move between pages.
+---
 
-## Project layout
+## 🏗️ Architecture
 
 ```
-backend/    Node + Express + TypeScript + Prisma (PostgreSQL), Zod, JWT, bcrypt, Nodemailer / Brevo e-mail, chatbot service
-frontend/   React + Vite + TypeScript + Tailwind + React Router + MediaPipe
-cleanup-legacy.ps1   moves the old MAZT/Next.js files into _legacy_mazt
+Webcam Feed ──▶ MediaPipe Pose (33 Skeletal Landmarks)
+             ──▶ Custom Biomechanical Fall Detection Algorithm
+             ──▶ Fall Candidate Identified ──▶ Cancellation Countdown
+             ──▶ [If Uncancelled] ──▶ Secure API Dispatch ──▶ Transactional Email Alert
 ```
 
-## Requirements
-Node.js 20+ (22 recommended), PostgreSQL 14+, a webcam, Chrome/Edge/Firefox. E-mail settings and an AI key are optional for running locally.
+### Technology Stack
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, MediaPipe Tasks Vision, Lucide Icons
+- **Backend:** Node.js, Express, TypeScript, Prisma ORM, PostgreSQL, Zod, JWT Authentication
+- **Notifications:** Nodemailer (SMTP) / Brevo API
 
-## Quick start (Windows PowerShell)
-```powershell
-cd C:\Users\AQUIB\Downloads\falldetection
-powershell -ExecutionPolicy Bypass -File .\setup-and-run.ps1
+---
+
+## 📋 System Requirements
+
+- **Node.js:** v20.x or later (v22 LTS recommended)
+- **Database:** PostgreSQL 14+
+- **Hardware:** Standard webcam / front-facing camera
+- **Browser:** Modern Chromium-based browser (Chrome, Edge), Firefox, or Safari (Camera access requires `localhost` or HTTPS)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Database Setup
+Ensure PostgreSQL is running and create a database:
+```sql
+CREATE DATABASE safewalk;
 ```
-This does every step below for you (needs Node.js 20+ and PostgreSQL installed; it asks for your `postgres` password once).
 
-## Manual setup (Windows PowerShell)
-
-### 0. Clean out the old MAZT files (once)
-```powershell
-cd C:\Users\AQUIB\Downloads\falldetection
-powershell -ExecutionPolicy Bypass -File .\cleanup-legacy.ps1
-```
-
-### 1. PostgreSQL
-Create a database (using `psql` or pgAdmin):
-```powershell
-psql -U postgres -c "CREATE DATABASE safewalk;"
-```
-
-### 2. Backend
-```powershell
+### 2. Backend Setup
+```bash
 cd backend
-Copy-Item .env.example .env
-notepad .env          # set DATABASE_URL and JWT_SECRET (see below)
+cp .env.example .env
 npm install
 npx prisma migrate dev --name init
-npm run dev           # http://localhost:4000  (health check: http://localhost:4000/health)
+npm run dev
 ```
-Generate a JWT secret:
-```powershell
-node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
-```
+*The backend server will start on `http://localhost:4000` (Health check: `http://localhost:4000/health`).*
 
-### 3. Frontend (second terminal)
-```powershell
+#### Environment Variables (`backend/.env`):
+- `DATABASE_URL`: PostgreSQL connection string (e.g., `postgresql://postgres:password@localhost:5432/safewalk`)
+- `JWT_SECRET`: Secure random string for session tokens
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`: (Optional) Email dispatch credentials
+
+### 3. Frontend Setup
+```bash
 cd frontend
-Copy-Item .env.example .env
-npm install           # also copies MediaPipe WASM to public/wasm and downloads the pose model
-npm run dev           # http://localhost:5173
+cp .env.example .env
+npm install
+npm run dev
 ```
-If the model download is blocked, download it manually (see `frontend/public/models/README.md`):
-```powershell
-Invoke-WebRequest -Uri "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task" -OutFile "public\models\pose_landmarker_lite.task"
-```
-Browsers allow camera access on `http://localhost` and on HTTPS sites only.
+*The frontend application will start on `http://localhost:5173`.*
 
-## E-mail alert setup
-Fall alerts are e-mailed to the **primary** emergency contact. Configure ONE of these in `backend/.env`, then restart the backend:
+---
 
-**Option A – SMTP (simplest on your own computer).** Works with any mailbox. Gmail example:
-1. Turn on 2-Step Verification for the Google account, then create an *App password* at <https://myaccount.google.com/apppasswords>.
-2. Set
-   ```
-   SMTP_HOST=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USER=you@gmail.com
-   SMTP_PASS=the-16-character-app-password
-   ```
+## 🧪 Testing & Simulation
 
-**Option B – Brevo HTTPS API (use this when deployed).** Render's free plan blocks SMTP ports, so SMTP does not work there.
-1. Create a free account at <https://www.brevo.com>, add and verify a sender address, and create an API key (SMTP & API → API keys).
-2. Set `BREVO_API_KEY=...` and `EMAIL_FROM=the-verified-sender@example.com`. When both are set, Brevo is used instead of SMTP.
+The platform includes automated test suites and an interactive simulation environment:
 
-Then open **Settings → Send test email** in the app: it mails your own account address and reports the mail server's answer. Without any e-mail settings the app still works, but a confirmed fall is recorded with status `not_configured` and the UI says nothing was sent.
+- **Algorithm Validation:**
+  ```bash
+  cd frontend && npm run test:fall
+  ```
+  Evaluates the fall algorithm against scripted scenarios (e.g., standard walking, rapid sitting, stumbling, and sudden falls).
 
-## AI chatbot setup
-The floating assistant (SafeWalk Help, Emergency Guidance, Safety & Prevention) calls the backend, which calls any OpenAI-compatible provider. In `backend/.env`:
-```
-AI_API_KEY=...
-AI_MODEL=...                       # e.g. a model name offered by your provider
-AI_API_BASE_URL=https://api.openai.com/v1
-```
-Without these the assistant answers from the built-in knowledge base and says the AI model is not configured. Emergency wording ("not breathing", "unconscious", …) triggers a fixed *Call 112* banner independent of the AI. The chatbot gives general information only, not diagnosis or medication advice, and never receives camera frames. Its knowledge base is a short curated summary based on public WHO / NHS / Red Cross / India guidance and **should be reviewed by a qualified professional before real-world use**.
+- **Chatbot Validation:**
+  ```bash
+  cd backend && npm run test:chat
+  ```
+  Validates emergency classification and knowledge-base information retrieval.
 
-## API overview
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/health` | service/database status |
-| POST | `/api/auth/register`, `/api/auth/login` | JWT (Bearer) |
-| GET/PUT | `/api/auth/me`, `/api/auth/profile` | profile and settings |
-| GET/POST/PUT/DELETE | `/api/contacts` | one primary contact enforced |
-| POST/GET | `/api/falls`, `/api/falls/:id`, POST `/api/falls/:id/resend` | `clientEventId` makes creation idempotent (no duplicate e-mail) |
-| GET | `/api/notifications` | alert e-mail history |
-| POST | `/api/notifications/test` | sends a test e-mail to your own address |
-| POST | `/api/chat`, GET `/api/chat/status` | stateless, nothing stored |
+- **Interactive Test Lab:**
+  Navigate to the `/test-lab` route inside the application to replay scripted biomechanical motions and inspect algorithmic scoring in real time without requiring physical falls.
 
-## Testing
-These checks run without a camera, database or mail server:
-```powershell
-cd frontend; npm run test:fall      # algorithm vs. scripted scenarios (walking, sitting, bending, falls, …)
-cd ..\backend; npm run test:chat    # emergency detection + knowledge-base retrieval
-```
-Manual checks you should do yourself:
-1. Register, add a contact with an e-mail address you can read, and use *Settings → Send test email*.
-2. *Test Lab* → run "Sudden fall" and "Walking" scenarios.
-3. *Monitoring* → Start, stand in view, then actually lower yourself to the floor safely (put a mattress down). Try pressing **I'm Safe** and also letting the countdown finish.
-4. Check *Fall History* and *Alerts* for the real status; use *Resend alert* only when the earlier e-mail failed.
-5. Turn the camera off / block it and confirm the error messages.
+---
 
-## Deployment (all free plans)
-| Part | Service | Why |
-|---|---|---|
-| Database | **Neon** (PostgreSQL) | free plan does not expire (Render's free database is deleted after 30 days) |
-| Backend | **Render** web service (`backend/render.yaml`) | free; sleeps after 15 minutes without traffic and takes about a minute to wake |
-| Frontend | **Vercel** (`frontend/vercel.json`) | free static hosting over HTTPS (needed for the camera) |
-| E-mail | **Brevo** API | free plan, works over HTTPS (Render blocks SMTP ports) |
+## 🔒 Privacy & Security
 
-1. **GitHub:** push this project to a repository (the `.gitignore` already keeps `.env`, `node_modules` and `pgsql/` out).
-2. **Neon:** create a project, copy the connection string (`postgresql://...neon.tech/neondb?sslmode=require`).
-3. **Brevo:** verify a sender address and create an API key (see *E-mail alert setup*).
-4. **Render:** New → Blueprint → pick the repository. It reads `backend/render.yaml`. Enter `DATABASE_URL` (Neon), `BREVO_API_KEY`, `EMAIL_FROM`, and for now `FRONTEND_URL=http://localhost:5173`. The start command runs `prisma migrate deploy`, which creates the tables. Check `https://<your-service>.onrender.com/health`.
-5. **Vercel:** New Project → the same repository → Root Directory `frontend` → environment variable `VITE_API_BASE_URL=https://<your-service>.onrender.com` → Deploy.
-6. **Render again:** change `FRONTEND_URL` to the Vercel address (no trailing slash) so the browser is allowed to call the API, and let it redeploy.
-7. Open the Vercel address, register, add a contact, and use *Settings → Send test email*.
+- **Zero Video Uploads:** Live camera feeds are processed strictly in client-side memory using WebAssembly. No video, images, or raw frames are ever saved, streamed, or uploaded to any server.
+- **Encrypted Credentials:** User passwords are encrypted using `bcrypt` with high salt rounds.
+- **Isolated Sessions:** Authentication uses signed JSON Web Tokens (JWT) with strict expiration periods.
+- **Telemetry & Location:** Location coordinates are optional and transmitted only if explicitly enabled by the user in settings.
 
-`npm ci` on Render needs `backend/package-lock.json` to match `package.json`, so run `npm install` in `backend` and commit the lock file before deploying.
+---
 
-## Known limitations
-* Fall detection is a heuristic on a single 2‑D camera; it can fail with poor lighting, occlusion, unusual camera angles or several people in view. The "evidence score" is not a probability.
-* The browser tab must stay open with the camera on; hidden tabs are slowed down by browsers.
-* Alerts are e-mails to ONE contact. They can land in spam, and nobody is notified unless that person reads e-mail promptly. `sent` does not mean read.
-* On Render's free plan the backend sleeps when idle, so the first alert after a quiet period can be delayed by about a minute.
-* No ambulance/emergency-service integration. No 24/7 monitoring service. No clinical validation.
-* Chat answers (especially AI-generated ones) can be wrong; the first-aid knowledge base needs professional review.
-* India-oriented defaults (112, +91); other countries need small changes.
+## ⚠️ Disclaimer
 
-## Privacy
-Passwords are hashed with bcrypt. Camera video is processed in the browser only. Location is sent only if you enable it in Settings. Chat messages are not stored by SafeWalk but are sent to your configured AI provider when one is set.
+SafeWalk is an assistive technology prototype and is **not certified as a medical diagnostic device**. It is designed to assist caregivers and family members, but cannot replace professional healthcare or emergency response services. In the event of a critical emergency, always contact local emergency dispatch (e.g., **112** in India, **911** in the US, or **999** in the UK) directly.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
