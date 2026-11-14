@@ -11,7 +11,7 @@ By running pose-estimation algorithms entirely on the client device, video frame
 - **On-Device Computer Vision:** Real-time 33-point skeletal landmark detection powered by MediaPipe. Video frames are processed entirely in the browser and never transmitted or stored on remote servers.
 - **Intelligent Fall Heuristics:** Evaluates body angle, velocity of hip descent, and posture persistence to accurately differentiate between actual falls and normal daily activities (such as sitting down or bending over).
 - **Safety Cancellation Window:** Configurable countdown timer (default 10 seconds) with an immediate *"I'm Safe"* action to prevent false alarms before an alert is dispatched.
-- **Automated Emergency Dispatch:** Instant notifications delivered to designated primary emergency contacts via verified transactional email (SMTP or Brevo API).
+- **Automated Emergency Dispatch:** Instant notifications delivered to designated primary emergency contacts via verified transactional email (SMTP or Resend API).
 - **Interactive First-Aid Assistant:** Built-in guidance for emergency procedures, fall prevention, and home safety recommendations.
 - **Auditable Event History:** Complete record of all detected events, delivery receipts, and alert statuses.
 
@@ -29,7 +29,7 @@ Webcam Feed ──▶ MediaPipe Pose (33 Skeletal Landmarks)
 ### Technology Stack
 - **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, MediaPipe Tasks Vision, Lucide Icons
 - **Backend:** Node.js, Express, TypeScript, Prisma ORM, PostgreSQL, Zod, JWT Authentication
-- **Notifications:** Nodemailer (SMTP) / Brevo API
+- **Notifications:** Resend API / Nodemailer (SMTP)
 
 ---
 
@@ -63,7 +63,8 @@ npm run dev
 #### Environment Variables (`backend/.env`):
 - `DATABASE_URL`: PostgreSQL connection string (e.g., `postgresql://postgres:password@localhost:5432/safewalk`)
 - `JWT_SECRET`: Secure random string for session tokens
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`: (Optional) Email dispatch credentials
+- `RESEND_API_KEY`: (Recommended for production) Resend API key starting with `re_...`
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`: (Alternative) Local SMTP email credentials
 
 ### 3. Frontend Setup
 ```bash
