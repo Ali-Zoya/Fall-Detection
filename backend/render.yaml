@@ -1,0 +1,37 @@
+# Render "Blueprint" for the SafeWalk API. Create it from the Render dashboard:
+#   New → Blueprint → select this repository.
+# Secrets marked `sync: false` are entered in the Render dashboard – never commit them.
+services:
+  - type: web
+    name: safewalk-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm ci && npm run build
+    # Applies pending Prisma migrations, then starts the server.
+    startCommand: npx prisma migrate deploy && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # e.g. your Neon connection string (keep ?sslmode=require)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false # e.g. https://safewalk.vercel.app
+      - key: DEFAULT_COUNTRY_CODE
+        value: "+91"
+      # E-mail alerts. Render's free plan blocks SMTP ports, so use Brevo's HTTPS API here.
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false # a sender address you verified in Brevo
+      - key: EMAIL_FROM_NAME
+        value: SafeWalk Alerts
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        sync: false
+      - key: AI_API_BASE_URL
+        value: https://api.openai.com/v1

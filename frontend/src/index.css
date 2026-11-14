@@ -1,0 +1,241 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-slate-50/50 font-sans text-slate-900 antialiased selection:bg-brand-500 selection:text-white;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-600 ring-offset-2;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply tracking-tight text-slate-900;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* Mirror the webcam like a mirror, so left/right feel natural. */
+  .mirror {
+    transform: scaleX(-1);
+  }
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+}
+
+/* Subtle dot / cyber grid for Antigravity-like background */
+.bg-grid-pattern {
+  background-image: radial-gradient(rgba(99, 102, 241, 0.15) 1.5px, transparent 1.5px),
+                    radial-gradient(rgba(37, 99, 235, 0.08) 1.5px, transparent 1.5px);
+  background-size: 36px 36px;
+  background-position: 0 0, 18px 18px;
+}
+
+/* Glowing floating orbs */
+@keyframes orb-float-1 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -40px) scale(1.1);
+  }
+  66% {
+    transform: translate(-25px, 25px) scale(0.95);
+  }
+}
+
+@keyframes orb-float-2 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(-35px, 35px) scale(1.08);
+  }
+  66% {
+    transform: translate(30px, -30px) scale(0.92);
+  }
+}
+
+@keyframes orb-float-3 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  50% {
+    transform: translate(25px, 35px) scale(1.12);
+  }
+}
+
+.animate-orb-1 {
+  animation: orb-float-1 16s ease-in-out infinite;
+}
+
+.animate-orb-2 {
+  animation: orb-float-2 20s ease-in-out infinite;
+}
+
+.animate-orb-3 {
+  animation: orb-float-3 14s ease-in-out infinite;
+}
+
+/* Walk and Fall simulation animation cycle (7s total) */
+@keyframes walk-fall-figure {
+  /* 0% to 32%: Walking upright across from left towards center */
+  0% {
+    transform: translate(110px, 140px) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    transform: translate(130px, 138px) rotate(2deg);
+    opacity: 1;
+  }
+  16% {
+    transform: translate(150px, 142px) rotate(-2deg);
+  }
+  24% {
+    transform: translate(170px, 138px) rotate(2deg);
+  }
+  32% {
+    transform: translate(185px, 140px) rotate(-1deg);
+  }
+  /* 38% to 50%: Stumble and Fall downwards horizontally */
+  38% {
+    transform: translate(195px, 145px) rotate(22deg);
+  }
+  46% {
+    transform: translate(205px, 190px) rotate(68deg);
+  }
+  50% {
+    transform: translate(210px, 215px) rotate(88deg);
+  }
+  /* 50% to 85%: Fallen on the floor, stationary */
+  85% {
+    transform: translate(210px, 215px) rotate(88deg);
+    opacity: 1;
+  }
+  /* 92% to 100%: Fade out and reset */
+  95% {
+    opacity: 0;
+    transform: translate(210px, 215px) rotate(88deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(110px, 140px) rotate(0deg);
+  }
+}
+
+/* Real monitoring color transition:
+   Safe (Walking upright) = Emerald (#10b981)
+   Candidate (Stumbling/falling when body tilt exceeds threshold) = Amber (#f59e0b)
+   Alert (Completely fallen on floor) = Red (#ef4444) */
+@keyframes posture-stroke-color {
+  0%, 41% {
+    stroke: #10b981;
+  }
+  44%, 48% {
+    stroke: #f59e0b;
+  }
+  50%, 92% {
+    stroke: #ef4444;
+  }
+  100% {
+    stroke: #10b981;
+  }
+}
+
+@keyframes posture-fill-color {
+  0%, 41% {
+    fill: #10b981;
+  }
+  44%, 48% {
+    fill: #f59e0b;
+  }
+  50%, 92% {
+    fill: #ef4444;
+  }
+  100% {
+    fill: #10b981;
+  }
+}
+
+/* Alert badge popup animation coordinated with the fall */
+@keyframes alert-badge-pop {
+  0%, 48% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.92);
+    pointer-events: none;
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.04);
+  }
+  60%, 88% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+  95%, 100% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+    pointer-events: none;
+  }
+}
+
+/* Walking leg swing animations */
+@keyframes leg-left-swing {
+  0%, 100% { transform: rotate(-15deg); }
+  50% { transform: rotate(18deg); }
+}
+
+@keyframes leg-right-swing {
+  0%, 100% { transform: rotate(18deg); }
+  50% { transform: rotate(-15deg); }
+}
+
+.animate-walk-fall {
+  animation: walk-fall-figure 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-origin: 0px 50px;
+}
+
+.animate-posture-stroke {
+  animation: posture-stroke-color 7s ease-in-out infinite;
+}
+
+.animate-posture-fill {
+  animation: posture-fill-color 7s ease-in-out infinite;
+}
+
+.animate-alert-pop {
+  animation: alert-badge-pop 7s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.animate-leg-left {
+  animation: leg-left-swing 0.8s ease-in-out infinite;
+  transform-origin: 0px 18px;
+}
+
+.animate-leg-right {
+  animation: leg-right-swing 0.8s ease-in-out infinite;
+  transform-origin: 0px 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

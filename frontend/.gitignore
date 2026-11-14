@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+# Copied from node_modules/@mediapipe/tasks-vision/wasm by `npm run setup:mediapipe`
+public/wasm

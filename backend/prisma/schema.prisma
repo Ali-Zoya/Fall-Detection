@@ -1,0 +1,104 @@
+// SafeWalk database schema (PostgreSQL + Prisma).
+//
+// Create / update the database with:
+//   npx prisma migrate dev --name init        (development)
+//   npx prisma migrate deploy                 (production)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FallStatus {
+  CONFIRMED // countdown ran out without the user cancelling → alert workflow started
+  CANCELLED // user pressed "I'm Safe – Cancel Alert" (false alarm)
+}
+
+enum Sensitivity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  phone        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Settings (kept on the user row to avoid an extra table)
+  countdownSeconds Int         @default(10) // 5..60
+  shareLocation    Boolean     @default(false)
+  sensitivity      Sensitivity @default(MEDIUM)
+  alertSound       Boolean     @default(true)
+
+  contacts   EmergencyContact[]
+  fallEvents FallEvent[]
+}
+
+model EmergencyContact {
+  id           String   @id @default(uuid())
+  userId       String
+  name         String
+  /// Address fall alerts are e-mailed to. Optional in the database only because contacts created
+  /// before e-mail alerts existed have none; the API requires it for every new or edited contact.
+  email        String?
+  phone        String? // optional, E.164, e.g. +919876543210 (shown so the user can call the contact)
+  relationship String
+  isPrimary    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, email])
+  @@index([userId])
+}
+
+model FallEvent {
+  id                 String     @id @default(uuid())
+  userId             String
+  /// Random id created by the browser when the possible fall is detected. Together with userId
+  /// it is unique, which makes POST /api/falls idempotent (no duplicate events / e-mails on retries).
+  clientEventId      String
+  detectedAt         DateTime
+  status             FallStatus
+  /// Heuristic evidence score (0..1) from the fall-detection algorithm. NOT a probability.
+  confidence         Float?
+  cancellationReason String?
+  createdAt          DateTime   @default(now())
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@unique([userId, clientEventId])
+  @@index([userId, detectedAt])
+}
+
+model Notification {
+  id                String    @id @default(uuid())
+  fallEventId       String
+  recipient         String // e-mail address the alert was addressed to ("-" if there was none)
+  message           String
+  /// pending | sent | failed | no_contact | not_configured
+  /// "sent" = the mail server accepted the message (it does not prove the e-mail was read).
+  /// Rows created before e-mail alerts may still hold old SMS statuses (queued, delivered, ...).
+  status            String
+  providerMessageId String? // message id returned by the mail server / Brevo
+  errorMessage      String?
+  sentAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  fallEvent FallEvent @relation(fields: [fallEventId], references: [id], onDelete: Cascade)
+
+  @@index([fallEventId])
+  @@index([providerMessageId])
+}

@@ -1,0 +1,15 @@
+{
+  "name": "SafeWalk – AI-Powered Fall Detection and Emergency Response System",
+  "short_name": "SafeWalk",
+  "description": "Real-time posture monitoring to detect potential falls, notify your trusted emergency contacts, and stay informed about personal safety.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0066CC",
+  "orientation": "any",
+  "scope": "/",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "categories": ["health", "medical", "safety"]
+}
