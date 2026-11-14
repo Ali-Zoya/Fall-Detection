@@ -29,8 +29,10 @@ const schema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  // ... or Brevo's HTTPS API (needed on hosts that block SMTP ports, such as Render's free plan).
+  // ... or Brevo's HTTPS API ...
   BREVO_API_KEY: z.string().optional(),
+  // ... or Resend's HTTPS API (e.g. key starting with re_..., default sender onboarding@resend.dev).
+  RESEND_API_KEY: z.string().optional(),
   // Sender address. Defaults to SMTP_USER for SMTP; required for Brevo (must be a verified sender).
   EMAIL_FROM: z.string().email('EMAIL_FROM must be an e-mail address').optional(),
   EMAIL_FROM_NAME: z.string().default('SafeWalk Alerts'),
@@ -57,17 +59,19 @@ export const allowedOrigins = env.FRONTEND_URL.split(',')
  * Which e-mail transport is used for fall alerts. Brevo wins when both are configured, because
  * it works over HTTPS and is therefore not affected by hosts that block SMTP ports.
  */
-export const emailProvider: 'brevo' | 'smtp' | null =
-  env.BREVO_API_KEY && env.EMAIL_FROM
-    ? 'brevo'
-    : env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS
-      ? 'smtp'
-      : null
+export const emailProvider: 'resend' | 'brevo' | 'smtp' | null =
+  env.RESEND_API_KEY
+    ? 'resend'
+    : env.BREVO_API_KEY && env.EMAIL_FROM
+      ? 'brevo'
+      : env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS
+        ? 'smtp'
+        : null
 
 export const emailConfigured = emailProvider !== null
 
 /** Address alerts are sent from. */
-export const emailFrom = env.EMAIL_FROM ?? env.SMTP_USER ?? ''
+export const emailFrom = env.EMAIL_FROM ?? (env.RESEND_API_KEY ? 'onboarding@resend.dev' : env.SMTP_USER ?? '')
 
 export const aiConfigured = Boolean(env.AI_API_KEY && env.AI_MODEL)
 

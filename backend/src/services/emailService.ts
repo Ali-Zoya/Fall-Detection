@@ -106,7 +106,40 @@ async function sendViaBrevo(msg: EmailMessage): Promise<EmailResult> {
   return { id: data?.messageId ?? null }
 }
 
+async function sendViaResend(msg: EmailMessage): Promise<EmailResult> {
+  let res: Response
+  try {
+    const fromAddress = env.EMAIL_FROM || 'onboarding@resend.dev'
+    res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY!}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `${env.EMAIL_FROM_NAME} <${fromAddress}>`,
+        to: [msg.to],
+        subject: msg.subject,
+        text: msg.text,
+        html: msg.html,
+      }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    })
+  } catch (e: unknown) {
+    const err = e as { name?: string; message?: string }
+    throw new EmailError(err.name === 'TimeoutError' ? 'Resend did not answer in time' : `Could not reach Resend: ${err.message ?? 'network error'}`)
+  }
+
+  const data = (await res.json().catch(() => null)) as { id?: string; message?: string; error?: { message?: string } } | null
+  if (!res.ok) {
+    const errorMsg = data?.message ?? data?.error?.message ?? `Resend refused the message (HTTP ${res.status})`
+    throw new EmailError(errorMsg, res.status)
+  }
+  return { id: data?.id ?? null }
+}
+
 export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
+  if (emailProvider === 'resend') return sendViaResend(msg)
   if (emailProvider === 'brevo') return sendViaBrevo(msg)
   if (emailProvider === 'smtp') return sendViaSmtp(msg)
   throw new EmailError('E-mail is not configured')
